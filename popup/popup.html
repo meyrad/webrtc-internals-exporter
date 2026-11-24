@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+<script type="module" src="popup.js"></script>
+</head>
+<body>
+  <header>
+    <img src="../icons/icon32.png" alt="">
+    <span class="title">WebRTC Internals Exporter</span>
+  </header>
+  <label class="rec">
+    <span><strong id="rec-label">Recording</strong><small id="rec-sub">Capturing WebRTC activity in all tabs</small></span>
+    <input type="checkbox" id="rec" class="switch">
+  </label>
+  <div class="grid">
+    <div><span class="v" id="active">–</span><span class="k">active now</span></div>
+    <div><span class="v" id="total">–</span><span class="k">connections</span></div>
+    <div><span class="v" id="span">–</span><span class="k">recorded</span></div>
+  </div>
+  <nav>
+    <button class="primary" data-open="export">Export by time range…</button>
+    <button data-open="import">Import a dump…</button>
+    <button data-open="library">View imported data</button>
+  </nav>
+  <footer>
+    <a href="#" id="settings">Settings</a>
+    <a href="#" id="native">Open chrome://webrtc-internals</a>
+  </footer>
+</body>
+</html>

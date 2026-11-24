@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+.cursor/
+.cursorignore
+*.swp
+*.swo
+*~
+
+# Logs and debug
+*.log
+npm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Node (if added later)
+node_modules/
+dist/
+coverage/
+*.tgz
+
+# Chrome / packaging
+*.crx
+*.pem
+*.zip
+web-ext-artifacts/
+
+# Local dumps and captures (do not commit recordings)
+*.json.gz
+dumps/
+captures/
+imports/

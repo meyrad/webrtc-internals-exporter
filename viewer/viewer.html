@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WebRTC Internals (archived)</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="webrtc_internals.css">
+<link rel="stylesheet" href="viewer.css">
+<script type="module" src="viewer.js"></script>
+</head>
+<body>
+  <div id="wie-banner" hidden>
+    <div class="wie-row">
+      <span class="wie-badge">ARCHIVE</span>
+      <strong id="wie-name"></strong>
+      <span id="wie-summary" class="wie-muted"></span>
+      <span class="wie-spacer"></span>
+      <a href="../app/app.html#library" class="wie-link">Imported data</a>
+      <a href="../app/app.html#import" class="wie-link">Import another file</a>
+    </div>
+    <div class="wie-row wie-scrubber">
+      <label for="wie-time">State at</label>
+      <button type="button" id="wie-first" title="Start of recording">&#x23EE;</button>
+      <button type="button" id="wie-back" title="Back 1 second">&minus;1s</button>
+      <input type="range" id="wie-time" min="0" max="1" step="1" value="1">
+      <button type="button" id="wie-fwd" title="Forward 1 second">+1s</button>
+      <button type="button" id="wie-last" title="End of recording">&#x23ED;</button>
+      <output id="wie-time-out"></output>
+    </div>
+    <details id="wie-meta"><summary>Recording details</summary><table id="wie-meta-table"></table></details>
+  </div>
+
+  <div id="wie-error" hidden></div>
+
+  <details class="peer-connection-dump-root" id="wie-dump-root" hidden>
+    <summary>Create a WebRTC-Internals dump</summary>
+    <div id="dump">
+      <div class="wie-range">
+        <label>From <input type="datetime-local" step="1" id="dump-from"></label>
+        <label>To <input type="datetime-local" step="1" id="dump-to"></label>
+        <button type="button" id="dump-full">Full range</button>
+        <button type="button" id="dump-to-cursor">End at current time position</button>
+      </div>
+      <button id="dump-click-target">Download the "webrtc-internals dump"</button>
+      <label><input type="checkbox" id="dump-checkbox" checked> Compress result</label>
+      <p class="dumps-info">
+        The "webrtc-internals" dump is a JSON file containing API calls,
+        events and getStats data about RTCPeerConnection objects
+        as well as getUserMedia/getDisplayMedia API calls. Only data inside the
+        selected time range is included.
+      </p>
+      <button id="dump-original">Download the original imported file</button>
+      <p class="dumps-info">Byte-for-byte copy of the imported data (decompressed).</p>
+    </div>
+  </details>
+
+  <div id="content-root"></div>
+</body>
+</html>

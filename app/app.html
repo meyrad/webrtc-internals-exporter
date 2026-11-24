@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WebRTC Internals Exporter</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="app.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="../icons/icon48.png" alt=""><span>WebRTC Internals Exporter</span></div>
+  <nav>
+    <a href="#export" data-view="export">Export</a>
+    <a href="#import" data-view="import">Import</a>
+    <a href="#library" data-view="library">Imported data</a>
+    <a href="#settings" data-view="settings">Settings</a>
+  </nav>
+  <div class="rec" id="rec-pill" title="Recording state"><span class="dot"></span><span id="rec-text">…</span></div>
+</header>
+
+<main>
+  <!-- EXPORT -->
+  <section id="view-export" class="view">
+    <h1>Export recorded data</h1>
+    <p class="lede">The extension records WebRTC API calls, events and <code>getStats()</code> samples from every tab, just like
+      <code>chrome://webrtc-internals</code>. Pick a time range and download it as a webrtc-internals dump.</p>
+
+    <div class="card stats-strip" id="capture-strip">
+      <div><span class="k">Recorded span</span><span class="v" id="cap-span">—</span></div>
+      <div><span class="k">Peer connections</span><span class="v" id="cap-pcs">—</span></div>
+      <div><span class="k">Stats samples</span><span class="v" id="cap-samples">—</span></div>
+      <div><span class="k">Events</span><span class="v" id="cap-events">—</span></div>
+      <div><span class="k">Storage used</span><span class="v" id="cap-storage">—</span></div>
+      <button class="ghost" id="cap-refresh" title="Refresh">Refresh</button>
+    </div>
+
+    <div class="card">
+      <h2>1. Time range</h2>
+      <div class="presets" id="presets">
+        <button data-min="5">Last 5 min</button>
+        <button data-min="15">Last 15 min</button>
+        <button data-min="60">Last hour</button>
+        <button data-min="0">Everything recorded</button>
+      </div>
+      <div class="range-row">
+        <label>From<input type="datetime-local" step="1" id="exp-from"></label>
+        <span class="arrow">→</span>
+        <label>To<input type="datetime-local" step="1" id="exp-to"></label>
+        <span class="hint" id="range-len"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Peer connections <span class="count" id="pc-count"></span></h2>
+      <div class="pc-tools">
+        <label><input type="checkbox" id="pc-all" checked> All connections in range</label>
+      </div>
+      <table class="list" id="pc-table">
+        <thead><tr><th></th><th>Page</th><th>Connection</th><th>Started</th><th>Last activity</th><th>Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="empty" id="pc-empty" hidden>No peer connections were recorded in this time range. Open a page that uses WebRTC (after installing the extension, reload it) and they will show up here.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. Output</h2>
+      <label class="check"><input type="checkbox" id="exp-gum" checked> Include getUserMedia / getDisplayMedia calls</label>
+      <label class="check"><input type="checkbox" id="exp-gz"> Compress (.json.gz)</label>
+      <div class="actions">
+        <button class="primary" id="exp-download">Download export</button>
+        <button id="exp-view">Open in viewer</button>
+        <span class="status" id="exp-status"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPORT -->
+  <section id="view-import" class="view" hidden>
+    <h1>Import a dump</h1>
+    <p class="lede">Import a file exported by this extension, or a dump saved from <code>chrome://webrtc-internals</code>
+      ("Download the webrtc-internals dump", compressed or not). Imported data is kept separately from live recordings and opens in its own tab.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".json,.txt,.gz,application/json,application/gzip,text/plain" multiple>
+      <strong>Drop files here</strong> or click to choose
+      <span>.json · .txt · .gz</span>
+    </label>
+    <ul class="results" id="import-results"></ul>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="view-library" class="view" hidden>
+    <h1>Imported data</h1>
+    <p class="lede">Archives stored in this browser. Open one to browse it in the webrtc-internals style viewer.</p>
+    <table class="list" id="lib-table">
+      <thead><tr><th>Name</th><th>Source</th><th>Recorded</th><th>Connections</th><th>Size</th><th>Imported</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="empty" id="lib-empty" hidden>Nothing imported yet. <a href="#import">Import a file</a> or use “Open in viewer” on the Export page.</p>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view" hidden>
+    <h1>Settings</h1>
+    <div class="card form">
+      <label class="switch-row"><span><strong>Record WebRTC activity</strong><small>Instruments RTCPeerConnection and getUserMedia in every tab. Pages opened before installing need a reload.</small></span>
+        <input type="checkbox" id="set-recording" class="switch"></label>
+      <label class="row"><span><strong>Stats sampling interval</strong><small>How often getStats() is polled (webrtc-internals uses 1 s).</small></span>
+        <select id="set-interval"><option value="500">0.5 s</option><option value="1000">1 s</option><option value="2000">2 s</option><option value="5000">5 s</option></select></label>
+      <label class="row"><span><strong>Keep recorded data for</strong><small>Older samples are deleted automatically.</small></span>
+        <select id="set-retention">
+          <option value="30">30 minutes</option><option value="60">1 hour</option><option value="180">3 hours</option>
+          <option value="360">6 hours</option><option value="720">12 hours</option><option value="1440">24 hours</option>
+          <option value="10080">7 days</option><option value="0">Forever</option>
+        </select></label>
+      <div class="row"><span><strong>Recorded data</strong><small id="set-usage"></small></span>
+        <button class="danger" id="set-clear">Delete all recorded data</button></div>
+    </div>
+    <p class="note">Data never leaves your computer: it is stored in this extension's IndexedDB and only written to files you export.</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,54 @@
+/* Additions for the archive viewer. Everything native-looking lives in webrtc_internals.css. */
+#wie-banner {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  background: #f3fbfb;
+  border: 1px solid #9fdcd6;
+  border-left: 4px solid turquoise;
+  padding: 6px 10px;
+  margin: 0 0 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.wie-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wie-row + .wie-row { margin-top: 6px; }
+.wie-spacer { flex: 1; }
+.wie-muted { color: #555; }
+.wie-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  background: #0d7f78; color: #fff; padding: 2px 6px; border-radius: 3px;
+}
+.wie-link { color: #0b6a64; }
+.wie-scrubber input[type=range] { flex: 1; min-width: 200px; accent-color: #0d9488; }
+.wie-scrubber button { font: inherit; padding: 1px 8px; cursor: pointer; }
+.wie-scrubber output { font-variant-numeric: tabular-nums; min-width: 22em; }
+#wie-meta { margin-top: 4px; }
+#wie-meta summary { cursor: pointer; color: #333; }
+#wie-meta table td { font-size: 12px; min-width: 0; }
+#wie-meta table td:first-child { font-weight: 600; white-space: nowrap; }
+#wie-error {
+  font-family: system-ui, sans-serif; background: #fdecea; color: #8a1c13;
+  border: 1px solid #f5c2bd; padding: 12px 14px; margin: 10px 0;
+}
+.wie-range { margin: 6px 0 8px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* Time-travel cues */
+.update-log-table tr.wie-future td { opacity: .35; }
+.update-log-table td.wie-time { cursor: pointer; }
+.update-log-table td.wie-time:hover { text-decoration: underline; }
+.wie-stale > summary { color: #8a8a8a; }
+.wie-stale > summary::after { content: "  (not reported at this time)"; font-style: italic; }
+.wie-notyet { display: none; }
+.user-media-request-div-class.wie-future { opacity: .4; }
+.wie-empty { color: #666; font-style: italic; margin: 1em 0; }
+
+/* Graphs */
+.wie-graph { position: relative; }
+.wie-graph canvas { display: block; cursor: crosshair; }
+.wie-tip {
+  position: absolute; pointer-events: none; background: rgba(255,255,255,.95);
+  border: 1px solid #999; font-size: 11px; padding: 2px 4px; white-space: nowrap; z-index: 2;
+}
+.wie-graph-note { font-size: 11px; color: #777; }
+details { scroll-margin-top: 120px; }
