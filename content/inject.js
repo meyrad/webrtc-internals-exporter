@@ -49,7 +49,7 @@
         const b = buffer; buffer = [];
         if (cfg.enabled) b.forEach(dispatch);
       }
-      if (cfg.enabled && !wasEnabled) schedulePoll();
+      if (cfg.enabled) schedulePoll();
     } catch (_) { /* ignore malformed */ }
   });
   window.dispatchEvent(new CustomEvent(EVT_HELLO));
@@ -365,7 +365,7 @@
     let timer = null;
     let running = false;
     function schedulePollImpl() {
-      if (timer || running || !cfg.enabled || !live.size) return;
+      if (!ready || timer || running || !cfg.enabled || !live.size) return;
       timer = setTimeout(tick, cfg.interval);
     }
     async function tick() {

@@ -8,25 +8,25 @@
 <body>
   <header>
     <img src="../icons/icon32.png" alt="">
-    <span class="title">WebRTC Internals Exporter</span>
+    <span class="title" data-i18n="appName">WebRTC Internals Exporter</span>
   </header>
-  <label class="rec">
-    <span><strong id="rec-label">Recording</strong><small id="rec-sub">Capturing WebRTC activity in all tabs</small></span>
-    <input type="checkbox" id="rec" class="switch">
-  </label>
+  <div class="rec">
+    <span><strong id="rec-label"></strong><small id="rec-sub"></small></span>
+    <button type="button" id="rec-btn" class="rec-btn"></button>
+  </div>
   <div class="grid">
-    <div><span class="v" id="active">–</span><span class="k">active now</span></div>
-    <div><span class="v" id="total">–</span><span class="k">connections</span></div>
-    <div><span class="v" id="span">–</span><span class="k">recorded</span></div>
+    <div><span class="v" id="active">–</span><span class="k" data-i18n="popup.active">active now</span></div>
+    <div><span class="v" id="total">–</span><span class="k" data-i18n="popup.connections">connections</span></div>
+    <div><span class="v" id="span">–</span><span class="k" data-i18n="popup.recorded">recorded</span></div>
   </div>
   <nav>
-    <button class="primary" data-open="export">Export by time range…</button>
-    <button data-open="import">Import a dump…</button>
-    <button data-open="library">View imported data</button>
+    <button class="primary" data-open="export" data-i18n="popup.export">Export by time range…</button>
+    <button data-open="import" data-i18n="popup.import">Import a dump…</button>
+    <button data-open="library" data-i18n="popup.library">View imported data</button>
   </nav>
   <footer>
-    <a href="#" id="settings">Settings</a>
-    <a href="#" id="native">Open chrome://webrtc-internals</a>
+    <a href="#" id="settings" data-i18n="popup.settings">Settings</a>
+    <a href="#" id="native" data-i18n="popup.native">Open chrome://webrtc-internals</a>
   </footer>
 </body>
 </html>

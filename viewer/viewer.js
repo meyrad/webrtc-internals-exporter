@@ -1,6 +1,7 @@
 // Archive viewer: renders an imported webrtc-internals dump with the same layout
 // as chrome://webrtc-internals, plus a time scrubber to inspect any moment.
 import { loadImport } from '../lib/db.js';
+import { initI18n, t, num, locale } from '../lib/i18n.js';
 import {
   normalizeDump, statAt, indexAt, sliceDump, downloadText, exportFileName,
 } from '../lib/dump.js';
@@ -23,13 +24,14 @@ function el(tag, attrs, ...kids) {
   return e;
 }
 
-const fmtLocale = (ms) => (ms === null || ms === undefined ? '' : new Date(ms).toLocaleString('en-US'));
-const fmtClock = (ms) => new Date(ms).toLocaleTimeString('en-US');
+const fmtLocale = (ms) => (ms === null || ms === undefined ? '' : new Date(ms).toLocaleString(locale()));
+const fmtClock = (ms) => new Date(ms).toLocaleTimeString(locale());
 function fmtDuration(ms) {
   if (!isFinite(ms)) return '';
   const s = Math.round(ms / 1000);
   const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60); const r = s % 60;
-  return h ? `${h}h ${m}m ${r}s` : m ? `${m}m ${r}s` : `${r}s`;
+  const [H, M, S] = [t('unit.h'), t('unit.m'), t('unit.s')];
+  return h ? `${num(h)} ${H} ${num(m)} ${M} ${num(r)} ${S}` : m ? `${num(m)} ${M} ${num(r)} ${S}` : `${num(r)} ${S}`;
 }
 function fmtValue(v) {
   if (v && typeof v === 'object' && !Array.isArray(v)) {
@@ -56,14 +58,16 @@ let activeTab = null;
 init().catch((e) => showError(e));
 
 async function init() {
+  await initI18n();
+  document.title = t('v.title');
   const id = Number(new URLSearchParams(location.search).get('id'));
-  if (!id) throw new Error('No imported dump selected. Open one from the "Imported data" page.');
+  if (!id) throw new Error(t('v.noId'));
   record = await loadImport(id);
-  if (!record) throw new Error(`Imported dump #${id} was not found. It may have been deleted.`);
+  if (!record) throw new Error(t('v.notFound', { id }));
   dump = JSON.parse(record.text);
   model = normalizeDump(dump);
   asOf = model.end;
-  document.title = `${record.name} — WebRTC Internals (archived)`;
+  document.title = `${record.name} — ${t('v.title')}`;
   renderBanner();
   renderDumpSection();
   renderTabs();
@@ -82,12 +86,12 @@ function renderBanner() {
   $('wie-name').textContent = record.name;
   const parts = [];
   if (model.start !== null) parts.push(`${fmtLocale(model.start)} → ${fmtLocale(model.end)} (${fmtDuration(model.end - model.start)})`);
-  parts.push(`${model.pcs.length} peer connection${model.pcs.length === 1 ? '' : 's'}`);
-  parts.push(`${model.gum.length} getUserMedia entr${model.gum.length === 1 ? 'y' : 'ies'}`);
+  parts.push(t('v.pcs', { n: model.pcs.length }));
+  parts.push(t('v.gums', { n: model.gum.length }));
   $('wie-summary').textContent = parts.join(' · ');
 
   const meta = $('wie-meta-table');
-  const rows = [['Imported', fmtLocale(record.importedAt)], ['Source', record.source === 'capture' ? 'Recorded by this extension' : 'Imported file']];
+  const rows = [[t('v.metaImported'), fmtLocale(record.importedAt)], [t('v.metaSource'), record.source === 'capture' ? t('v.srcCapture') : t('v.srcFile')]];
   for (const k of Object.keys(model.meta)) {
     let v = model.meta[k];
     if (k === 'timestamp' && typeof v === 'number') v = `${fmtLocale(v)} (${v})`;
@@ -122,7 +126,7 @@ function updateTimeOut() {
   const a = Math.abs(off);
   const mm = String(Math.floor(a / 60000)).padStart(2, '0');
   const ss = ((a % 60000) / 1000).toFixed(3).padStart(6, '0');
-  $('wie-time-out').textContent = `${fmtLocale(asOf)}.${String(Math.floor(asOf % 1000)).padStart(3, '0')}  (${sign}${mm}:${ss}${asOf >= model.end ? ', end' : ''})`;
+  $('wie-time-out').textContent = `${fmtLocale(asOf)} .${String(Math.floor(asOf % 1000)).padStart(3, '0')}  (${sign}${mm}:${ss}${asOf >= model.end ? `${locale() === 'fa-IR' ? '،' : ','} ${t('v.end')}` : ''})`;
 }
 
 function setAsOf(t) {
@@ -146,12 +150,12 @@ function renderDumpSection() {
   $('dump-to-cursor').onclick = () => { to.value = toLocalInput(Math.ceil(asOf / 1000) * 1000); };
   $('dump-click-target').onclick = async () => {
     const f = new Date(from.value).getTime();
-    const t = new Date(to.value).getTime() + 999; // inclusive of the whole "to" second
-    if (!isFinite(f) || !isFinite(t) || f > t) { alert('Please choose a valid time range.'); return; }
+    const e = new Date(to.value).getTime() + 999; // inclusive of the whole "to" second
+    if (!isFinite(f) || !isFinite(e) || f > e) { alert(t('v.badRange')); return; }
     const gz = $('dump-checkbox').checked;
-    const isFull = model.start !== null && f <= model.start && t >= model.end;
-    const text = isFull ? record.text : JSON.stringify(sliceDump(dump, f, t));
-    await downloadText(text, exportFileName('webrtc_internals_dump', f, t, gz), { gz });
+    const isFull = model.start !== null && f <= model.start && e >= model.end;
+    const text = isFull ? record.text : JSON.stringify(sliceDump(dump, f, e));
+    await downloadText(text, exportFileName('webrtc_internals_dump', f, e, gz), { gz });
   };
   $('dump-original').onclick = () => {
     const base = record.name.replace(/\.(gz|json|txt)$/i, '').replace(/\.(json|txt)$/i, '');
@@ -180,9 +184,9 @@ function renderTabs() {
     tabs.push(tab);
     return tab;
   };
-  addTab('getUserMedia/getDisplayMedia', 'user-media-tab-id', buildGumTab);
+  addTab(t('v.gumTab'), 'user-media-tab-id', buildGumTab);
   model.pcs.forEach((pc) => addTab(pcTitle(pc), pc.key, (tab) => buildPcTab(tab, pc)));
-  if (!model.pcs.length && !model.gum.length) root.append(el('p', { class: 'wie-empty', text: 'This dump contains no peer connections or getUserMedia calls.' }));
+  if (!model.pcs.length && !model.gum.length) root.append(el('p', { class: 'wie-empty', text: t('v.empty') }));
   activate(tabs[model.pcs.length ? 1 : 0]);
 }
 
@@ -215,35 +219,35 @@ function buildGumTab(tab) {
     const first = list[0];
     const origin = list.find((x) => x.origin)?.origin || '';
     const div = el('div', { class: 'user-media-request-div-class', id: `gum-${key}` },
-      el('div', { text: `Caller origin: ${origin}` }),
-      el('div', { text: `Caller process id: ${first.pid ?? ''}` }));
+      el('div', { text: `${t('v.callerOrigin')} ${origin}` }),
+      el('div', { text: `${t('v.callerPid')} ${first.pid ?? ''}` }));
     for (const g of list) {
       const kind = g.request_type || 'getUserMedia';
       const time = g.t !== null ? new Date(g.t).toTimeString() : '';
       const line = (t) => el('div', { style: 'font-weight: normal;', text: t });
       const track = (j) => { try { const o = JSON.parse(j); return `id=${o.id} label:${o.label}`; } catch (_) { return j; } };
       if ('audio' in g || 'video' in g) {
-        div.append(el('span', { style: 'font-weight: bold;' }, `${kind} call`, line(`Time: ${time}`),
-          'audio' in g ? line(`Audio constraints: ${g.audio === '' ? 'true' : g.audio}`) : null,
-          'video' in g ? line(`Video constraints: ${g.video === '' ? 'true' : g.video}`) : null));
+        div.append(el('span', { style: 'font-weight: bold;' }, t('v.call', { kind }), line(`${t('v.time')} ${time}`),
+          'audio' in g ? line(`${t('v.audioC')} ${g.audio === '' ? 'true' : g.audio}`) : null,
+          'video' in g ? line(`${t('v.videoC')} ${g.video === '' ? 'true' : g.video}`) : null));
       } else if (g.error !== undefined || g.error_message !== undefined) {
-        div.append(el('span', { style: 'font-weight: bold;' }, `${kind} error`, line(`Time: ${time}`),
-          line(`Error: ${g.error ?? ''}`), line(`Error message: ${g.error_message ?? ''}`)));
+        div.append(el('span', { style: 'font-weight: bold;' }, t('v.error', { kind }), line(`${t('v.time')} ${time}`),
+          line(`${t('v.errName')} ${g.error ?? ''}`), line(`${t('v.errMsg')} ${g.error_message ?? ''}`)));
       } else if (g.stream_id !== undefined) {
-        div.append(el('span', { style: 'font-weight: bold;' }, `${kind} result`, line(`Time: ${time}`),
-          line(`Stream id: ${g.stream_id}`),
-          g.audio_track_info ? line(`Audio track: ${track(g.audio_track_info)}`) : null,
-          g.video_track_info ? line(`Video track: ${track(g.video_track_info)}`) : null));
+        div.append(el('span', { style: 'font-weight: bold;' }, t('v.result', { kind }), line(`${t('v.time')} ${time}`),
+          line(`${t('v.streamId')} ${g.stream_id}`),
+          g.audio_track_info ? line(`${t('v.audioTrack')} ${track(g.audio_track_info)}`) : null,
+          g.video_track_info ? line(`${t('v.videoTrack')} ${track(g.video_track_info)}`) : null));
       } else {
-        div.append(el('span', { style: 'font-weight: bold;' }, kind, line(`Time: ${time}`), el('pre', { text: JSON.stringify(g, null, 1) })));
+        div.append(el('span', { style: 'font-weight: bold;' }, kind, line(`${t('v.time')} ${time}`), el('pre', { text: JSON.stringify(g, null, 1) })));
       }
     }
     blocks.push({ div, origin, t: first.t });
     body.append(div);
   }
-  if (!blocks.length) body.append(el('p', { class: 'wie-empty', text: 'No getUserMedia/getDisplayMedia calls in this dump.' }));
+  if (!blocks.length) body.append(el('p', { class: 'wie-empty', text: t('v.noGum') }));
   const input = el('input', { size: 30 });
-  body.append(el('label', { text: 'Filter by origin including ' }), input);
+  body.append(el('label', { text: t('v.filterOrigin') }), input);
   input.oninput = () => {
     for (const b of blocks) b.div.style.display = !input.value || b.origin.includes(input.value) ? '' : 'none';
   };
@@ -252,9 +256,9 @@ function buildGumTab(tab) {
 
 // ------------------------------------------------------------------ peer connection tab
 const STATE_LINES = [
-  ['iceconnectionstate', 'ICE connection state', ['oniceconnectionstatechange', 'iceConnectionStateChange', 'iceconnectionstatechange']],
-  ['connectionstate', 'Connection state', ['onconnectionstatechange', 'connectionStateChange', 'connectionstatechange']],
-  ['signalingstate', 'Signaling state', ['onsignalingstatechange', 'signalingStateChange', 'signalingstatechange']],
+  ['iceconnectionstate', 'v.iceState', ['oniceconnectionstatechange', 'iceConnectionStateChange', 'iceconnectionstatechange']],
+  ['connectionstate', 'v.connState', ['onconnectionstatechange', 'connectionStateChange', 'connectionstatechange']],
+  ['signalingstate', 'v.sigState', ['onsignalingstatechange', 'signalingStateChange', 'signalingstatechange']],
 ];
 const SDP_TYPES = new Set(['createOfferOnSuccess', 'createAnswerOnSuccess', 'setLocalDescription', 'setRemoteDescription']);
 const LABEL_KEYS = ['kind', 'mid', 'ssrc', 'rtxSsrc', 'fecSsrc', 'frameHeight', 'active', 'scalabilityMode',
@@ -294,7 +298,7 @@ function eventSummary(u) {
 
 function sdpNode(sdp) {
   const frag = el('pre');
-  const copy = el('button', { text: 'Copy description to clipboard' });
+  const copy = el('button', { text: t('v.copySdp') });
   copy.onclick = (e) => { e.preventDefault(); navigator.clipboard.writeText(sdp).catch(() => {}); };
   frag.append(copy);
   const lines = sdp.split(/\r?\n/).filter((l, i, a) => !(i === a.length - 1 && l === ''));
@@ -334,19 +338,19 @@ function buildPcTab(tab, pc) {
 
   const stateDivs = STATE_LINES.map(([cls]) => { const d = el('div', { class: cls }); body.append(d); return d; });
   const pairSpan = el('span');
-  body.append(el('div', { class: 'candidatepair' }, 'ICE Candidate pair: ', pairSpan));
+  body.append(el('div', { class: 'candidatepair' }, t('v.pair'), pairSpan));
   const grid = el('table', { id: `grid-${pc.key}`, class: 'candidategrid' });
-  const gridDetails = el('details', null, el('summary', { text: 'ICE candidate grid' }), grid);
+  const gridDetails = el('details', null, el('summary', { text: t('v.grid') }), grid);
   body.append(gridDetails);
 
   // ---- update log
   const logTable = el('table', { class: 'update-log-table', id: `${pc.key}-update-log`, border: '1' });
-  const tbody = el('tbody', null, el('tr', null, el('th', { text: 'Time' }), el('th', { class: 'update-log-header-event', text: 'Event' })));
+  const tbody = el('tbody', null, el('tr', null, el('th', { text: t('v.colTime') }), el('th', { class: 'update-log-header-event', text: t('v.colEvent') })));
   logTable.append(tbody);
   const rows = [];
   let prevT = null;
   for (const u of pc.updateLog) {
-    const title = u.t !== null ? `Timestamp: ${u.t}${prevT !== null ? ` delta: ${u.t - prevT}ms` : ''}` : '';
+    const title = u.t !== null ? t('v.tsTitle', { t: u.t, delta: prevT !== null ? u.t - prevT : undefined }) : '';
     const timeCell = el('td', { title, class: 'wie-time', text: u.t !== null ? fmtLocale(u.t) : (u.timeText || '') });
     if (u.t !== null) timeCell.onclick = () => setAsOf(u.t);
     prevT = u.t ?? prevT;
@@ -369,20 +373,21 @@ function buildPcTab(tab, pc) {
 
   // ---- stats tables
   const tableContainer = el('div', { id: `${pc.key}-table-container`, class: 'stats-table-container' });
-  const tableFilter = el('input', { placeholder: 'separate multiple values by `,`', size: 25 });
-  tableContainer.append(el('div', { text: 'Stats Tables' }), el('label', { text: 'Filter statistics by type including ' }), tableFilter);
+  const tableFilter = el('input', { placeholder: t('v.filterPh'), size: 25 });
+  tableContainer.append(el('div', { text: t('v.statsTables') }), el('label', { text: t('v.filterTables') }), tableFilter);
   const statById = new Map(pc.stats.map((s) => [s.id, s]));
   const tableEntries = pc.stats.map((stat) => {
     const summary = el('summary');
     const table = el('table', { id: `${pc.key}-table-${stat.id}`, border: '1' });
     const details = el('details', { id: `${pc.key}-details-${stat.id}` }, summary, table);
+    summary.dataset.stale = t('v.stale');
     details.addEventListener('toggle', () => { if (details.open) fillTable(entry); });
     tableContainer.append(details);
     const entry = { stat, details, summary, table };
     return entry;
   });
   body.append(tableContainer);
-  if (!pc.stats.length) tableContainer.append(el('p', { class: 'wie-empty', text: 'No getStats data in this dump.' }));
+  if (!pc.stats.length) tableContainer.append(el('p', { class: 'wie-empty', text: t('v.noStats') }));
 
   function goToStat(id) {
     const ent = tableEntries.find((t) => t.stat.id === id);
@@ -396,7 +401,7 @@ function buildPcTab(tab, pc) {
     const { stat, table } = entry;
     const vals = statAt(stat, asOf);
     table.textContent = '';
-    const tb = el('tbody', null, el('tr', null, el('th', { colspan: '2', text: `Statistics ${stat.id}` })));
+    const tb = el('tbody', null, el('tr', null, el('th', { colspan: '2', text: t('v.statistics', { id: stat.id }) })));
     const row = (name, value) => {
       let link = el('a');
       if (/Id$/.test(name) && typeof value === 'string' && statById.has(value)) {
@@ -415,8 +420,8 @@ function buildPcTab(tab, pc) {
 
   // ---- graphs
   const graphContainer = el('div', { id: `${pc.key}-graph-container`, class: 'stats-graph-container' });
-  const graphFilter = el('input', { placeholder: 'separate multiple values by `,`', size: 25 });
-  graphContainer.append(el('label', { text: 'Filter statistics graphs by type including ' }), graphFilter);
+  const graphFilter = el('input', { placeholder: t('v.filterPh'), size: 25 });
+  graphContainer.append(el('label', { text: t('v.filterGraphs') }), graphFilter);
   const graphEntries = pc.stats.map((stat) => {
     const heading = el('span', { class: 'stats-graph-container-heading' });
     const details = el('details', { id: `${pc.key}-${stat.type}-${stat.id}-graph-container`, class: 'stats-graph-container' }, el('summary', null, heading));
@@ -442,7 +447,7 @@ function buildPcTab(tab, pc) {
         el('div', { id: `${pc.key}-${entry.stat.id}-${f.name}-div` }, g.root)));
       entry.graphs.push(g);
     }
-    if (!numeric.length) entry.details.append(el('p', { class: 'wie-graph-note', text: 'No numeric values to graph.' }));
+    if (!numeric.length) entry.details.append(el('p', { class: 'wie-graph-note', text: t('v.noNumeric') }));
   }
 
   const applyFilter = (input, entries) => {
@@ -457,18 +462,18 @@ function buildPcTab(tab, pc) {
 
   // ---- time-dependent refresh
   tab.update = () => {
-    const t = asOf;
+    const at = asOf;
     // state lines
     STATE_LINES.forEach(([, label, types], i) => {
-      const seq = pc.updateLog.filter((u) => types.includes(u.type) && (u.t === null || u.t <= t)).map((u) => u.value);
-      stateDivs[i].textContent = `${label}: new${seq.map((v) => ` => ${v}`).join('')}`;
+      const seq = pc.updateLog.filter((u) => types.includes(u.type) && (u.t === null || u.t <= at)).map((u) => u.value);
+      stateDivs[i].textContent = `${t(label)}: new${seq.map((v) => ` => ${v}`).join('')}`;
     });
-    for (const r of rows) r.tr.classList.toggle('wie-future', r.t !== null && r.t > t);
+    for (const r of rows) r.tr.classList.toggle('wie-future', r.t !== null && r.t > at);
 
     const current = new Map(); // id -> values at t (only stats that exist at t)
     for (const stat of pc.stats) {
-      if (stat.first !== null && stat.first > t) continue;
-      current.set(stat.id, statAt(stat, t));
+      if (stat.first !== null && stat.first > at) continue;
+      current.set(stat.id, statAt(stat, at));
     }
     renderPair(current);
     renderGrid(current);
@@ -479,13 +484,13 @@ function buildPcTab(tab, pc) {
       if (!exists) continue;
       const vals = current.get(e.stat.id);
       e.summary.textContent = statLabel(e.stat, vals);
-      e.details.classList.toggle('wie-stale', e.stat.last !== null && e.stat.last < t - 2500);
+      e.details.classList.toggle('wie-stale', e.stat.last !== null && e.stat.last < at - 2500);
       e.summary.classList.toggle('stats-table-rtp-inactive', e.stat.type === 'outbound-rtp' && vals.active === false);
       if (e.details.open) fillTable(e);
     }
     for (const e of graphEntries) {
       const vals = current.get(e.stat.id) || statAt(e.stat, null);
-      e.heading.textContent = `Stats graphs for ${statLabel(e.stat, vals)}`;
+      e.heading.textContent = t('v.graphsFor', { label: statLabel(e.stat, vals) });
       if (e.graphs && e.details.open) e.graphs.forEach((g) => g.draw());
     }
   };
@@ -505,9 +510,7 @@ function buildPcTab(tab, pc) {
 
   function renderGrid(current) {
     grid.textContent = '';
-    grid.append(el('tr', null, ['Candidate (pair) id', 'State / Candidate type', 'Network type / address', 'Port',
-      'Protocol / candidate type', '(Pair) Priority', 'Bytes sent / received', 'STUN requests sent / responses received',
-      'STUN requests received / responses sent', 'RTT', 'Last data sent / received', 'Last update'].map((h) => el('th', { text: h }))));
+    grid.append(el('tr', null, t('v.gridHead').map((h) => el('th', { text: h }))));
     const active = selectedPairId(current);
     const pairs = [...current].filter(([, v]) => v.type === 'candidate-pair');
     pairs.sort((a, b) => (b[0] === active) - (a[0] === active));

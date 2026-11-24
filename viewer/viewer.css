@@ -4,7 +4,7 @@
   font-size: 13px;
   background: #f3fbfb;
   border: 1px solid #9fdcd6;
-  border-left: 4px solid turquoise;
+  border-inline-start: 4px solid turquoise;
   padding: 6px 10px;
   margin: 0 0 10px;
   position: sticky;
@@ -38,7 +38,7 @@
 .update-log-table td.wie-time { cursor: pointer; }
 .update-log-table td.wie-time:hover { text-decoration: underline; }
 .wie-stale > summary { color: #8a8a8a; }
-.wie-stale > summary::after { content: "  (not reported at this time)"; font-style: italic; }
+.wie-stale > summary::after { content: "  " attr(data-stale); font-style: italic; }
 .wie-notyet { display: none; }
 .user-media-request-div-class.wie-future { opacity: .4; }
 .wie-empty { color: #666; font-style: italic; margin: 1em 0; }
@@ -52,3 +52,15 @@
 }
 .wie-graph-note { font-size: 11px; color: #777; }
 details { scroll-margin-top: 120px; }
+
+/* Right-to-left (Persian). Raw data (SDP, ids, values, URLs) stays left-to-right. */
+:root:lang(fa) #wie-banner, :root:lang(fa) .tab-head, :root:lang(fa) #wie-error { font-family: Vazirmatn, Tahoma, system-ui, sans-serif; }
+[dir=rtl] pre, [dir=rtl] .update-log-table td:first-child, [dir=rtl] .stats-table-container td,
+[dir=rtl] .candidategrid td, [dir=rtl] input[type=datetime-local], [dir=rtl] .wie-tip,
+[dir=rtl] #wie-meta td + td { direction: ltr; unicode-bidi: plaintext; text-align: start; }
+[dir=rtl] .update-log-container { float: right; }
+[dir=rtl] .stats-table-container { float: right; }
+[dir=rtl] .stats-graph-sub-container { float: right; }
+/* The time scrubber follows the graphs' time axis, which always runs left to right. */
+[dir=rtl] .wie-scrubber { direction: ltr; }
+[dir=rtl] .wie-scrubber output { direction: rtl; unicode-bidi: plaintext; }

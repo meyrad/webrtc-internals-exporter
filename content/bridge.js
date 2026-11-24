@@ -32,7 +32,7 @@
   }
 
   try {
-    chrome.storage.local.get({ recording: true, pollInterval: 1000 }, (s) => {
+    chrome.storage.local.get({ recording: false, pollInterval: 1000 }, (s) => {
       cfg = { enabled: !!s.recording, interval: s.pollInterval };
       sendCfg();
     });

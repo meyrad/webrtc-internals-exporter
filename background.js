@@ -1,5 +1,6 @@
 // Service worker: persists captured WebRTC data into IndexedDB and enforces retention.
 import { openCapture, txDone, reqP, trimBefore, DEFAULT_SETTINGS } from './lib/db.js';
+import { t } from './lib/i18n.js';
 
 const pcKey = (tabId, frameId, nonce, lid) => `${tabId}:${frameId}:${nonce}:${lid}`;
 
@@ -11,22 +12,27 @@ chrome.runtime.onInstalled.addListener(async () => {
   const cur = await chrome.storage.local.get(null);
   const missing = {};
   for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) if (!(k in cur)) missing[k] = v;
-  if (Object.keys(missing).length) await chrome.storage.local.set(missing);
+  // Never start recording on its own: the user must click "Start Recording".
+  missing.recording = false;
+  await chrome.storage.local.set(missing);
   chrome.alarms.create('wie-trim', { periodInMinutes: 5 });
   updateBadge();
 });
-chrome.runtime.onStartup.addListener(() => {
+chrome.runtime.onStartup.addListener(async () => {
+  // A browser restart also leaves the extension idle.
+  await chrome.storage.local.set({ recording: false });
   chrome.alarms.create('wie-trim', { periodInMinutes: 5 });
   updateBadge();
 });
 
 async function updateBadge() {
-  const { recording } = await settings();
-  chrome.action.setBadgeText({ text: recording ? '' : 'OFF' });
-  chrome.action.setBadgeBackgroundColor({ color: '#777' });
+  const { recording, language } = await settings();
+  chrome.action.setBadgeText({ text: recording ? 'REC' : '' });
+  chrome.action.setBadgeBackgroundColor({ color: '#d93025' });
+  chrome.action.setTitle({ title: t('appName', null, language) });
 }
 chrome.storage.onChanged.addListener((ch, area) => {
-  if (area === 'local' && ch.recording) updateBadge();
+  if (area === 'local' && (ch.recording || ch.language)) updateBadge();
 });
 
 // Serialise writes so batches from many tabs never interleave transactions badly.
